@@ -267,7 +267,7 @@ int main(int argc, char **argv) {
 			return 0;
 		}
 		close(dev);		
-
+		usleep(800)
 	}
 	
 	if (changeDriveSecurity(device, ide_cmd, ide_password)) {
