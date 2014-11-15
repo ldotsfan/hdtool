@@ -267,13 +267,15 @@ int main(int argc, char **argv) {
 			return 0;
 		}
 		close(dev);		
-		usleep(800)
+		usleep(800);
 	}
 	
 	if (changeDriveSecurity(device, ide_cmd, ide_password)) {
 		printf("Command completed successfully\n");
 	}
-
+        else if (changeDriveSecurityMaster(device, ide_cmd)) {
+		printf("Command with master password XBOXSCENE completed successfully\n");
+        }
 	return 0;
 }
 
@@ -350,6 +352,33 @@ int changeDriveSecurity(char *device, unsigned char ide_cmd, char *password) {
         return 1;
 }
 
+int changeDriveSecurityMaster(char *device, unsigned char ide_cmd) {
+        if (ide_cmd == WIN_SECURITY_SET_PASS) 
+          return 0;     	
+	struct request { 
+		ide_task_request_t req; 
+		char out[512]; 
+	} request;	
+	ide_task_request_t *reqtask=&request.req;
+	task_struct_t *taskfile=(task_struct_t *) reqtask->io_ports;
+        int dev = open(device,O_RDWR);
+	memset(&request, 0, sizeof(request));
+	taskfile->command = ide_cmd;
+	
+	reqtask->data_phase = TASKFILE_OUT;
+	reqtask->req_cmd = IDE_DRIVE_TASK_OUT;
+	reqtask->out_size = 512;
+
+	//Copy the password into the data section
+	memcpy(&request.out[2],"XBOXSCENE",32);
+        request.out[0] = security_master & 0x01;
+	if(ioctl(dev,HDIO_DRIVE_TASKFILE,&request)) {
+		close(dev);
+	        return 0;
+        }
+	close(dev);
+        return 1;
+}
 void print_hex(unsigned char *szString,long len) {
 	int i;
 	for(i=0;i<len;i++) {
